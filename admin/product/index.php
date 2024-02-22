@@ -3,10 +3,15 @@ require_once $_SERVER["DOCUMENT_ROOT"] . "/admin/include/protect.php";
 
 $sql = "SELECT * FROM table_product ORDER BY product_name";
 $stmt = $db->prepare($sql);
-$stmt->execute();
-if (isset($_GET['search_query'])) {
-    echo "test";
+
+if (isset($_GET['search_query'])) { // Si une requête a été soumise
+    $search_query = '%' . $_GET['search_query'] . '%'; // L'usage des % est spécifique à "LIKE" (c'est du REGEX pour dire n'importe quel caractère)
+    $sql = "SELECT * FROM table_product WHERE product_name LIKE :search_query ORDER BY product_name";
+    $stmt = $db->prepare($sql);
+    $stmt->bindParam(':search_query', $search_query);
 }
+
+$stmt->execute();
 $recordset = $stmt->fetchAll();
 $search_query = "";
 ?>
@@ -23,16 +28,23 @@ $search_query = "";
 </head>
 
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a href="/admin/index.php">Panel Admin</a>
+    </nav>
     <main class="container">
+
         <div class="d-flex justify-content-between my-3 align-items-center">
             <h1>Liste des produits</h1>
             <a href="form.php" class="btn btn-primary px-5" title="Ajouter un produit">Ajouter</a>
         </div>
 
-        <table class="table table-striped">
+        <table class="table table-striped border-2 border">
             <caption>liste des produits</caption>
             <div class="input-group rounded mb-5">
-                <form action="research.php" method="POST">
+                <form action="index.php" method="GET">
+                    <button class="btn btn-outline-primary me-3 rounded">
+                        <i class="fa-solid fa-arrow-rotate-right"></i>
+                    </button>
                     <input type="search" class="form-control rounded" placeholder="Search" aria-label="Search"
                         aria-describedby="search-addon" id="research" name="search_query"
                         value="<?= $search_query ?>" />
@@ -42,6 +54,7 @@ $search_query = "";
                     <i class="fas fa-search"></i>
                 </span>
             </div>
+            <hr class="text-primary">
             <tr>
                 <th scope="col">Nom</td>
                 <th scope="col">Description</td>
