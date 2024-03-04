@@ -6,7 +6,12 @@ $stmt = $db->prepare($sql);
 
 if (isset($_GET['search_query'])) { // Si une requête a été soumise
     $search_query = '%' . $_GET['search_query'] . '%'; // L'usage des % est spécifique à "LIKE" (c'est du REGEX pour dire n'importe quel caractère)
-    $sql = "SELECT * FROM table_product WHERE product_name LIKE :search_query ORDER BY product_name";
+    $sql = "SELECT * FROM table_product 
+    WHERE LOWER(product_name) LIKE LOWER(:search_query)
+    OR LOWER(product_description) LIKE LOWER(:search_query)
+    OR LOWER(product_author) LIKE LOWER(:search_query)
+    OR LOWER(product_cartoonist) LIKE LOWER(:search_query)
+    ORDER BY product_name";
     $stmt = $db->prepare($sql);
     $stmt->bindParam(':search_query', $search_query);
 }
@@ -42,13 +47,13 @@ $search_query = "";
             <caption>liste des produits</caption>
             <div class="input-group rounded mb-5">
                 <form action="index.php" method="GET">
-                    <button class="btn btn-outline-primary me-3 rounded">
+                    <button class="btn btn-outline-primary me-3 rounded" title="Réinitialiser le champ de rechercher">
                         <i class="fa-solid fa-arrow-rotate-right"></i>
                     </button>
                     <input type="search" class="form-control rounded" placeholder="Search" aria-label="Search"
                         aria-describedby="search-addon" id="research" name="search_query"
                         value="<?= $search_query ?>" />
-                    <button type="submit" class="btn btn-primary px-5 rounded ms-3">Chercher</button>
+                    <button type="submit" class="btn btn-primary px-5 rounded ms-3" title="Chercher un produit">Chercher</button>
                 </form>
                 <span class="input-group-text border-0" id="search-addon">
                     <i class="fas fa-search"></i>
