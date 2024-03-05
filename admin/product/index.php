@@ -53,7 +53,8 @@ $search_query = "";
                     <input type="search" class="form-control rounded" placeholder="Search" aria-label="Search"
                         aria-describedby="search-addon" id="research" name="search_query"
                         value="<?= $search_query ?>" />
-                    <button type="submit" class="btn btn-primary px-5 rounded ms-3" title="Chercher un produit">Chercher</button>
+                    <button type="submit" class="btn btn-primary px-5 rounded ms-3"
+                        title="Chercher un produit">Chercher</button>
                 </form>
                 <span class="input-group-text border-0" id="search-addon">
                     <i class="fas fa-search"></i>
@@ -67,29 +68,33 @@ $search_query = "";
                 <th scope="col">Stock</td>
                 <th scope="col">Auteur</td>
                 <th scope="col">Dessinateur</td>
+                <th scope="col">Date de parution</td>
                 <th scope="col" class="text-center">Supprimer</td>
                 <th scope="col" class="text-center">Modifier</td>
             </tr>
 
             <?php foreach ($recordset as $row) { ?>
                 <tr>
-                    <td>
+                    <td class="text-wrap text-break">
                         <?= $row["product_name"]; ?>
                     </td>
-                    <td>
+                    <td class="text-wrap text-break">
                         <?= $row["product_description"]; ?>
                     </td>
-                    <td>
+                    <td class="text-wrap text-break">
                         <?= $row["product_price"]; ?>
                     </td>
-                    <td>
+                    <td class="text-wrap text-break">
                         <?= $row["product_stock"]; ?>
                     </td>
-                    <td>
+                    <td class="text-wrap text-break">
                         <?= $row["product_author"]; ?>
                     </td>
-                    <td>
+                    <td class="text-wrap text-break">
                         <?= $row["product_cartoonist"]; ?>
+                    </td>
+                    <td class="text-wrap text-break">
+                        <?= $row["product_date"]; ?>
                     </td>
                     <td class="text-center">
                         <a href="delete.php?id=<?= $row["product_id"]; ?>" title="Supprimer le produit">
@@ -103,8 +108,7 @@ $search_query = "";
                     </td>
                 </tr>
                 <?php
-            }
-            ?>
+            } ?>
         </table>
     </main>
 </body>
