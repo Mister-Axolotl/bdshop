@@ -11,9 +11,6 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <a href="/admin/product/index.php">Produits</a>
-    </nav>
     <div class="container">
         <h1>Bienvenue
             <?= $_SESSION['user_name']; ?>
