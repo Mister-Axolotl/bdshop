@@ -7,6 +7,10 @@ This is a project created in class to learn the basics of PhP and security.
 - Minimum security
 - Minimum style (Bootstrap)
 
+## Important
+
+Create a folder "upload" at the source
+
 ## Branches
 
 There are two branches in this project. The differences are as follows.
