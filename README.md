@@ -9,7 +9,7 @@ This is a project created in class to learn the basics of PhP and security.
 
 ## Important
 
-.gitkeep files arejust for adding empty folders on github
+.gitkeep files are just for adding empty folders on github
 
 ## Branches
 
