@@ -98,14 +98,14 @@ if (isset($_FILES['product_image']) && $_FILES['product_image']['name'] != "") {
 
     switch (strtolower($extension)) {
         case "gif":
-            $imageSource = imagecreatefromgif($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
+            $imgSource = imagecreatefromgif($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
             break;
         case "png":
-            $imageSource = imagecreatefrompng($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
+            $imgSource = imagecreatefrompng($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
             break;
         case "jpg":
         case "jpeg":
-            $imageSource = imagecreatefromjpeg($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
+            $imgSource = imagecreatefromjpeg($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
             break;
         default:
             // supprimer le fichier
@@ -118,32 +118,50 @@ if (isset($_FILES['product_image']) && $_FILES['product_image']['name'] != "") {
     $imgSourceLargeur = $sizes[0];
     $imgSourceHauteur = $sizes[1];
 
-    if ($imgSourceLargeur > $imgSourceLargeur) {
+    $imgDestLargeur = 600;
+    $imgDestHauteur = 600;
+
+    if ($imgSourceLargeur > $imgSourceHauteur) {
         // format paysage
-        $imgDestLargeur = 800;
-        $imgDestHauteur = ($imgSourceHauteur * 800) / $imgSourceLargeur;
+        $imageSourceZoneX = ($imgSourceLargeur - $imgSourceHauteur) / 2;
+        $imageSourceZoneY = 0;
+        $imgSourceZoneLargeur = $imgSourceHauteur;
+        $imgSourceZoneHauteur = $imgSourceHauteur;
     } else {
         // format portrait
-        $imgDestHauteur = 600;
-        $imgDestLargeur = ($imgSourceLargeur * 600) / $imgSourceHauteur;
+        $imageSourceZoneX = 0;
+        $imageSourceZoneY = ($imgSourceHauteur - $imgSourceLargeur) / 2;
+        $imgSourceZoneLargeur = $imgSourceLargeur;
+        $imgSourceZoneHauteur = $imgSourceLargeur;
     }
 
     $imgDest = imagecreatetruecolor($imgDestLargeur, $imgDestHauteur); // créer une image vierge à la taille souhaitée
 
-    imagecopyresampled($imgDest, $imageSource, 0, 0, 0, 0, $imgDestLargeur, $imgDestHauteur, $imgSourceLargeur, $imgSourceHauteur); // copie de l'image source dans l'image vierge
+    imagecopyresampled( // copie de l'image source dans l'image vierge
+        $imgDest,
+        $imgSource,
+        0,
+        0,
+        $imageSourceZoneX,
+        $imageSourceZoneY,
+        $imgDestLargeur,
+        $imgDestHauteur,
+        $imgSourceZoneLargeur,
+        $imgSourceZoneHauteur
+    );
 
     // Création du nouveau fichier
 
     switch (strtolower($extension)) {
         case "gif":
-            imagegif($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "_large." . $extension);
+            imagegif($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . "lg_" . $filename . "." . $extension);
             break;
         case "png":
-            imagepng($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "_large." . $extension, 5);
+            imagepng($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . "lg_" . $filename . "." . $extension, 5);
             break;
         case "jpg":
         case "jpeg":
-            imagejpeg($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "_large." . $extension, 97);
+            imagejpeg($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . "lg_" . $filename . "." . $extension, 97);
             break;
     }
 
