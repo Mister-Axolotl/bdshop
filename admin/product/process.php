@@ -1,7 +1,8 @@
 <?php require_once $_SERVER["DOCUMENT_ROOT"] . "/admin/include/connect.php";
 require_once $_SERVER["DOCUMENT_ROOT"] . "/admin/include/protect.php";
+$uploadPath = $_SERVER['DOCUMENT_ROOT'] . "/upload/";
 
-function generateFileName($str, $ext)
+function generateFileName($str, $ext, $uploadPath)
 {
     $result = $str;
     $result = strtolower($result);
@@ -10,7 +11,7 @@ function generateFileName($str, $ext)
     $result = str_replace($pattern, $replace, $result);
 
     $i = 1;
-    while (file_exists($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $result . ($i > 1 ? " (" . $i . ")" : "") . "." . $ext)) {
+    while (file_exists($uploadPath . $result . ($i > 1 ? " (" . $i . ")" : "") . "." . $ext)) {
         $i++;
     }
 
@@ -19,6 +20,23 @@ function generateFileName($str, $ext)
     }
 
     return $result;
+}
+
+function showError($error)
+{
+    ?>
+    <a href="index.php" title="Retour">Retour</a>
+    <br>
+    <br>
+    <h1>
+        <?= $error ?>
+    </h1>
+    <?php
+}
+
+if (!isset($_POST['product_name'])) {
+    showError("Il faut passer par le formulaire pour aller sur cette page");
+    exit();
 }
 
 if (isset($_POST['product_id']) && $_POST['product_id'] > 0) {
@@ -63,6 +81,13 @@ if (isset($_POST['product_cartoonist'])) {
 $stmt->execute();
 
 if (isset($_FILES['product_image']) && $_FILES['product_image']['name'] != "") {
+
+    // Vérifier s'il y a une erreur
+    if ($_FILES['product_image']['error'] != 0) {
+        showError("Erreur lors du transfert de l'image");
+        exit();
+    }
+
     $sql = "SELECT product_image FROM table_product
     WHERE product_id = :product_id";
     $stmt = $db->prepare($sql);
@@ -70,18 +95,18 @@ if (isset($_FILES['product_image']) && $_FILES['product_image']['name'] != "") {
     $stmt->execute();
 
     if ($row = $stmt->fetch()) {
-        if ($row['product_image'] != "" && file_exists($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $row['product_image'])) {
-            unlink($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $row['product_image']);
+        if ($row['product_image'] != "" && file_exists($uploadPath . $row['product_image'])) {
+            unlink($uploadPath . $row['product_image']);
         }
     }
 
     // Renomme l'image
 
     $extension = pathinfo($_FILES['product_image']['name'], PATHINFO_EXTENSION);
-    $filename = generateFileName($_POST['product_name'], $extension);
+    $filename = generateFileName($_POST['product_name'], $extension, $uploadPath);
     move_uploaded_file(
         $_FILES['product_image']['tmp_name'],
-        $_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension
+        $uploadPath . $filename . "." . $extension
     );
 
     // Requête pour ajouter l'image dans la BDD
@@ -94,80 +119,126 @@ if (isset($_FILES['product_image']) && $_FILES['product_image']['name'] != "") {
     $stmt->bindValue(":product_id", $_POST['product_id'] > 0 ? $_POST['product_id'] : $db->lastInsertId());
     $stmt->execute();
 
-    // Traitement d'image
-
-    switch (strtolower($extension)) {
-        case "gif":
-            $imgSource = imagecreatefromgif($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
-            break;
-        case "png":
-            $imgSource = imagecreatefrompng($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
-            break;
-        case "jpg":
-        case "jpeg":
-            $imgSource = imagecreatefromjpeg($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
-            break;
-        default:
-            // supprimer le fichier
-            exit();
-    }
+    $filename = $filename . "." . $extension;
 
     // Création de l'image
 
-    $sizes = getimagesize($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
-    $imgSourceLargeur = $sizes[0];
-    $imgSourceHauteur = $sizes[1];
+    $tabTailles = [
+        ["prefix" => "xl", "largeur" => 1200, "hauteur" => 900],
+        ["prefix" => "lg", "largeur" => 800, "hauteur" => 600],
+        ["prefix" => "md", "largeur" => 400, "hauteur" => 400],
+        ["prefix" => "sm", "largeur" => 150, "hauteur" => 150],
+    ];
 
-    $imgDestLargeur = 600;
-    $imgDestHauteur = 600;
+    foreach ($tabTailles as $taille) {
+        // Traitement d'image
 
-    if ($imgSourceLargeur > $imgSourceHauteur) {
-        // format paysage
-        $imageSourceZoneX = ($imgSourceLargeur - $imgSourceHauteur) / 2;
-        $imageSourceZoneY = 0;
-        $imgSourceZoneLargeur = $imgSourceHauteur;
-        $imgSourceZoneHauteur = $imgSourceHauteur;
-    } else {
-        // format portrait
+        switch (strtolower($extension)) {
+            case "gif":
+                $imgSource = imagecreatefromgif($uploadPath . $filename);
+                break;
+            case "png":
+                $imgSource = imagecreatefrompng($uploadPath . $filename);
+                break;
+            case "jpg":
+            case "jpeg":
+                $imgSource = imagecreatefromjpeg($uploadPath . $filename);
+                break;
+            default:
+                unlink($uploadPath . $filename);
+                showError("Format de fichier non autorisé");
+                $sql = "UPDATE table_product SET product_image=null
+                WHERE product_id = :product_id";
+
+                $stmt = $db->prepare($sql);
+                $stmt->bindValue(":product_id", $_POST['product_id'] > 0 ? $_POST['product_id'] : $db->lastInsertId());
+                $stmt->execute();
+                exit();
+        }
+
+        $sizes = getimagesize($uploadPath . $filename);
+        $imgSourceLargeur = $sizes[0];
+        $imgSourceHauteur = $sizes[1];
+
+        $imgPrefix = $taille['prefix'];
+        $imgDestLargeur = $taille['largeur'];
+        $imgDestHauteur = $taille['hauteur'];
         $imageSourceZoneX = 0;
-        $imageSourceZoneY = ($imgSourceHauteur - $imgSourceLargeur) / 2;
+        $imageSourceZoneY = 0;
         $imgSourceZoneLargeur = $imgSourceLargeur;
-        $imgSourceZoneHauteur = $imgSourceLargeur;
-    }
+        $imgSourceZoneHauteur = $imgSourceHauteur;
 
-    $imgDest = imagecreatetruecolor($imgDestLargeur, $imgDestHauteur); // créer une image vierge à la taille souhaitée
+        if ($imgDestLargeur == $imgDestHauteur) {
+            // Crop
+            if ($imgSourceLargeur > $imgSourceHauteur) {
+                // format paysage
+                $imageSourceZoneX = ($imgSourceLargeur - $imgSourceHauteur) / 2;
+                $imgSourceZoneLargeur = $imgSourceHauteur;
+            } else {
+                // format portrait
+                $imageSourceZoneY = ($imgSourceHauteur - $imgSourceLargeur) / 2;
+                $imgSourceZoneHauteur = $imgSourceLargeur;
+            }
+        } else {
+            // Resize
+            if ($imgSourceLargeur > $imgSourceHauteur) {
+                // format paysage
+                $imgDestHauteur = ($imgSourceHauteur * $imgDestLargeur) / $imgSourceLargeur;
+            } else {
+                // format portrait
+                $imgDestLargeur = ($imgSourceLargeur * $imgDestHauteur) / $imgSourceHauteur;
+            }
+        }
 
-    imagecopyresampled( // copie de l'image source dans l'image vierge
-        $imgDest,
-        $imgSource,
-        0,
-        0,
-        $imageSourceZoneX,
-        $imageSourceZoneY,
-        $imgDestLargeur,
-        $imgDestHauteur,
-        $imgSourceZoneLargeur,
-        $imgSourceZoneHauteur
-    );
+        $imgDest = imagecreatetruecolor($imgDestLargeur, $imgDestHauteur); // Créer une image vierge à la taille souhaitée
 
-    // Création du nouveau fichier
+        // Transparence
+        imagesavealpha($imgDest, true);
+        $trans_colour = imagecolorallocatealpha($imgDest, 0, 0, 0, 127);
+        imagefill($imgDest, 0, 0, $trans_colour);
 
-    switch (strtolower($extension)) {
-        case "gif":
-            imagegif($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . "lg_" . $filename . "." . $extension);
-            break;
-        case "png":
-            imagepng($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . "lg_" . $filename . "." . $extension, 5);
-            break;
-        case "jpg":
-        case "jpeg":
-            imagejpeg($imgDest, $_SERVER['DOCUMENT_ROOT'] . "/upload/" . "lg_" . $filename . "." . $extension, 97);
-            break;
+        // Copie de l'image source dans l'image vierge
+        imagecopyresampled(
+            $imgDest,
+            $imgSource,
+            0,
+            0,
+            $imageSourceZoneX,
+            $imageSourceZoneY,
+            $imgDestLargeur,
+            $imgDestHauteur,
+            $imgSourceZoneLargeur,
+            $imgSourceZoneHauteur
+        );
+
+        // Création du nouveau fichier
+
+        switch (strtolower($extension)) {
+            case "gif":
+                imagecolortransparent($imgDest, $trans_colour); // Transparence
+                imagegif($imgDest, $uploadPath . $imgPrefix . "_" . $filename);
+                imagegif($imgDest, $uploadPath . $filename);
+                break;
+            case "png":
+                imagepng($imgDest, $uploadPath . $imgPrefix . "_" . $filename, 5, PNG_ALL_FILTERS);
+                imagepng($imgDest, $uploadPath . $filename);
+                break;
+            case "jpg":
+            case "jpeg":
+                imagejpeg($imgDest, $uploadPath . $imgPrefix . "_" . $filename, 97);
+                imagejpeg($imgDest, $uploadPath . $filename);
+                break;
+        }
     }
 
     // Suppression de l'image source
 
-    unlink($_SERVER['DOCUMENT_ROOT'] . "/upload/" . $filename . "." . $extension);
+    unlink($uploadPath . $filename);
 }
 
-header("Location:index.php");
+// header("Location:index.php");
+
+// TODO
+// Vérifier si l'extension n'a pas été renommée et qu'elle coincide avec l'extension du fichier
+// Ne pas resize l'image si elle est plus petite que la taille souhaitée
+// Vérifier si l'image doit être affichée format paysage ou portrait

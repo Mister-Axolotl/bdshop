@@ -84,7 +84,8 @@ if (isset($_GET['id']) && $_GET['id'] > 0) {
 
             <div class="form-group mt-3">
                 <label for="product_image">Image de couverture :</label>
-                <input type="file" class="form-control" name="product_image" id="product_image">
+                <input type="file" class="form-control" name="product_image" id="product_image"
+                    accept="image/png, image/jpeg, image/jpg, image/gif">
             </div>
 
             <button type="submit" class="btn btn-primary mt-3">Valider</button>
